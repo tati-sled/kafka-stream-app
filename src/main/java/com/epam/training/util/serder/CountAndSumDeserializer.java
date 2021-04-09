@@ -7,9 +7,9 @@ import com.epam.training.util.CountAndSum;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
-public class CountAndSumDeseriaizer implements Deserializer<CountAndSum> {
+public class CountAndSumDeserializer implements Deserializer<CountAndSum> {
 
-    public CountAndSumDeseriaizer(Class<CountAndSum> clazz) {
+    public CountAndSumDeserializer(Class<?> clazz) {
     }
 
     @Override

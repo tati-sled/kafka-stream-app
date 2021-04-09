@@ -10,7 +10,7 @@ public final class CustomSerdes {
             extends Serdes.WrapperSerde<CountAndSum> {
         public CountAndSumSerde() {
             super(new CountAndSumSerializer(),
-                    new CountAndSumDeseriaizer(CountAndSum.class));
+                    new CountAndSumDeserializer(CountAndSum.class));
         }
     }
 
