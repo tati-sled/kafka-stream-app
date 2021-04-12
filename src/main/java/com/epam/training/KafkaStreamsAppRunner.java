@@ -21,6 +21,7 @@ public class KafkaStreamsAppRunner {
 
     private static final Logger LOG = Logger.getLogger(KafkaStreamsAppRunner.class);
     private static final int TEMPERATURE_DIFF_FROM_C_TO_F = 32;
+    private static final int GEO_HASH_LENGTH = 4;
 
     private Properties getConfigs() {
         Properties config = new Properties();
@@ -71,7 +72,7 @@ public class KafkaStreamsAppRunner {
                     String geoHash = GeoHash.geoHashStringWithCharacterPrecision(
                             value.getLatitude()
                             , value.getLongitude()
-                            , 4
+                            , GEO_HASH_LENGTH
                     );
                     String newKey = geoHash + " " + value.getWeatherDate();
                     return new KeyValue<>(newKey, value.getAverageTemperatureC());
