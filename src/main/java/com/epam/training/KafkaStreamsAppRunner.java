@@ -1,6 +1,10 @@
 package com.epam.training;
 
 import ch.hsr.geohash.GeoHash;
+import com.epam.training.model.CountAndSum;
+import com.epam.training.model.Hotel;
+import com.epam.training.model.Weather;
+import com.epam.training.serder.CustomSerdes;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.streams.*;
@@ -9,19 +13,16 @@ import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.Materialized;
 import org.apache.kafka.streams.kstream.Produced;
 import org.apache.log4j.Logger;
-import org.json.JSONObject;
-import com.epam.training.util.CountAndSum;
-import com.epam.training.util.serder.CustomSerdes;
 
-import java.nio.charset.StandardCharsets;
 import java.util.Properties;
 import java.util.UUID;
 
 public class KafkaStreamsAppRunner {
 
     private static final Logger LOG = Logger.getLogger(KafkaStreamsAppRunner.class);
+    private static final int TEMPERATURE_DIFF_FROM_C_TO_F = 32;
 
-    protected Properties getConfigs() {
+    private Properties getConfigs() {
         Properties config = new Properties();
 
         config.put(StreamsConfig.APPLICATION_ID_CONFIG, "kafka-stream-app-" + UUID.randomUUID());
@@ -33,10 +34,20 @@ public class KafkaStreamsAppRunner {
         return config;
     }
 
-    private void run() {
+    private Properties getTopicProps() {
+        Properties props = new Properties();
 
+        props.put("hotelTopicName", "test-hotel");
+        props.put("weatherTopicName", "test-weather");
+        props.put("hotelWithWeatherTopicName", "test-hotel-weather-join");
+
+        return props;
+    }
+
+    private void run() {
         Properties configs = getConfigs();
-        Topology topology = buildTopology();
+        Properties topicProps = getTopicProps();
+        Topology topology = buildTopology(new StreamsBuilder(), topicProps);
 
         KafkaStreams streams = new KafkaStreams(topology, configs);
 
@@ -53,27 +64,35 @@ public class KafkaStreamsAppRunner {
         }));
     }
 
-    private Topology buildTopology() {
-        StreamsBuilder streamsBuilder = new StreamsBuilder();
-
-        KTable<byte[], Double> weatherTable = streamsBuilder
-                .stream("test-weather", Consumed.with(Serdes.String(), Serdes.String()))
+    private KTable<String, Double> getAverageTempWeatherTable(StreamsBuilder streamsBuilder, String weatherTopicName) {
+        return streamsBuilder
+                .stream(weatherTopicName, Consumed.with(Serdes.String(), CustomSerdes.Weather()))
                 .map(((key, value) -> {
-                    JSONObject jsonValue = new JSONObject(value);
                     String geoHash = GeoHash.geoHashStringWithCharacterPrecision(
-                            jsonValue.getDouble("lat")
-                            , jsonValue.getDouble("lng")
+                            value.getLatitude()
+                            , value.getLongitude()
                             , 4
                     );
-                    String newKey = geoHash + " " + jsonValue.getString("wthr_date");
-                    return new KeyValue<>(newKey.getBytes(StandardCharsets.UTF_8), jsonValue.getDouble("avg_tmpr_c"));
+                    String newKey = geoHash + " " + value.getWeatherDate();
+                    return new KeyValue<>(newKey, value.getAverageTemperatureC());
                 }))
-                .toTable(Materialized.with(Serdes.ByteArray(), Serdes.Double()));
+                .toTable(Materialized.with(Serdes.String(), Serdes.Double()));
+    }
 
-        KTable<byte[], String> hotelTable = streamsBuilder
-                .stream("test-hotel", Consumed.with(Serdes.String(), Serdes.String()))
-                .selectKey((key, value) -> new JSONObject(value).getString("Geohash").getBytes(StandardCharsets.UTF_8))
-                .toTable();
+    private KTable<String, Hotel> getHotelTable(StreamsBuilder streamsBuilder, String hotelTopicName) {
+        return streamsBuilder
+                .stream(hotelTopicName, Consumed.with(Serdes.String(), CustomSerdes.Hotel()))
+                .selectKey((key, value) -> value.getGeoHash())
+                .toTable(Materialized.with(Serdes.String(), CustomSerdes.Hotel()));
+    }
+
+    protected Topology buildTopology(StreamsBuilder streamsBuilder, Properties topicProps) {
+        String hotelTopicName = topicProps.getProperty("hotelTopicName");
+        String weatherTopicName = topicProps.getProperty("weatherTopicName");
+        String hotelWithWeatherTopicName = topicProps.getProperty("hotelWithWeatherTopicName");
+
+        KTable<String, Double> weatherTable = getAverageTempWeatherTable(streamsBuilder, weatherTopicName);
+        KTable<String, Hotel> hotelTable = getHotelTable(streamsBuilder, hotelTopicName);
 
         weatherTable
                 .toStream()
@@ -84,35 +103,27 @@ public class KafkaStreamsAppRunner {
                             aggregate.setSum(aggregate.getSum() + value);
                             return aggregate;
                         }
-                        , Materialized.with(Serdes.ByteArray(), CustomSerdes.CountAndSum()))
+                        , Materialized.with(Serdes.String(), CustomSerdes.CountAndSum()))
                 .toStream()
                 .map((key, value) -> {
                     double aveTempC = value.getSum() / value.getCount();
-                    String[] complexKeyItems = new String(key, StandardCharsets.UTF_8).split(" ");
+                    String[] complexKeyItems = key.split(" ");
                     String geoHash = complexKeyItems[0];
                     String date = complexKeyItems[1];
-                    JSONObject newWeatherValue = new JSONObject();
-                    newWeatherValue.accumulate("GeoHash", geoHash)
-                            .accumulate("Date", date)
-                            .accumulate("Avr_temp_C", aveTempC)
-                            .accumulate("Avr_temp_F", aveTempC + 32);
-                    return new KeyValue<>(key, newWeatherValue.toString());
-                }).toTable(Materialized.with(Serdes.ByteArray(), Serdes.String()))
+                    Weather weather = new Weather(aveTempC, aveTempC + TEMPERATURE_DIFF_FROM_C_TO_F, date, geoHash);
+                    return new KeyValue<>(key, weather);
+                }).toTable(Materialized.with(Serdes.String(), CustomSerdes.Weather()))
                 .join(
                         hotelTable
-                        , (weatherRow) -> new JSONObject(weatherRow).getString("GeoHash").getBytes(StandardCharsets.UTF_8)
+                        , Weather::getGeoHash
                         , (wValue, hValue) -> {
-                            JSONObject jhValue = new JSONObject(hValue);
-                            JSONObject jwValue = new JSONObject(wValue);
-                            return jhValue
-                                    .accumulate("Date", jwValue.getString("Date"))
-                                    .accumulate("Avr_temp_C", jwValue.getDouble("Avr_temp_C"))
-                                    .accumulate("Avr_temp_F", jwValue.getDouble("Avr_temp_F"))
-                                    .toString();
+                            hValue.setDate(wValue.getWeatherDate());
+                            hValue.setAverageTemperatureC(String.valueOf(wValue.getAverageTemperatureC()));
+                            hValue.setAverageTemperatureF(String.valueOf(wValue.getAverageTemperatureF()));
+                            return hValue;
                         })
                 .toStream()
-                .to("test-hotel-weather-join", Produced.with(Serdes.ByteArray(), Serdes.String()));
-
+                .to(hotelWithWeatherTopicName, Produced.with(Serdes.String(), CustomSerdes.Hotel()));
         return streamsBuilder.build();
     }
 

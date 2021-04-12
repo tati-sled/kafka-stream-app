@@ -1,12 +1,19 @@
-package com.epam.training.util.serder;
+package com.epam.training.serder.countandsum;
 
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.serialization.Deserializer;
-import com.epam.training.util.CountAndSum;
+import com.epam.training.model.CountAndSum;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
+/**
+ * Implementation of custom deserializer for instances of CountAndSum class.
+ *
+ * @author Tatiana_Slednikova
+ * @version 1.0.0
+ * @since 1.0.0
+ */
 public class CountAndSumDeserializer implements Deserializer<CountAndSum> {
 
     public CountAndSumDeserializer(Class<?> clazz) {
