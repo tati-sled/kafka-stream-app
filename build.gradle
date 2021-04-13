@@ -1,19 +1,20 @@
 plugins {
     id 'java'
     id 'application'
+    id 'com.bmuschko.docker-java-application' version '6.7.0'
 }
 
-group 'org.example'
-version '1.0-SNAPSHOT'
+group 'com.epam'
+version '1.0.0'
 
 repositories {
     mavenCentral()
 }
 
 dependencies {
-    implementation group: 'org.json', name: 'json', version: '20210307'
-    implementation group: 'ch.hsr', name: 'geohash', version: '1.4.0'
-    implementation 'org.projectlombok:lombok:1.18.18'
+    compile group: 'org.json', name: 'json', version: '20210307'
+    compile group: 'ch.hsr', name: 'geohash', version: '1.4.0'
+    compile 'org.projectlombok:lombok:1.18.18'
     annotationProcessor 'org.projectlombok:lombok:1.18.18'
     testAnnotationProcessor 'org.projectlombok:lombok:1.18.18'
 
@@ -27,4 +28,27 @@ dependencies {
 
 test {
     useJUnitPlatform()
+}
+
+mainClassName = 'com.epam.training.KafkaStreamsAppRunner'
+
+task extendedJar(type: Jar) {
+    manifest {
+        attributes 'Main-Class': 'com.epam.training.KafkaStreamsAppRunner'
+    }
+    from {
+        configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+    with jar
+}
+
+docker {
+    javaApplication {
+        baseImage = 'java:openjdk-8-jdk'
+        maintainer = 'Tatiana Slednikova "tatiana_slednikova@epam.com"'
+        images   = ['tatisled/' + project.name.toLowerCase() + ':latest']
+        jvmArgs = [ "-Dcom.sun.management.jmxremote.port=5555",
+                    "-Dcom.sun.management.jmxremote.authenticate=false",
+                    "-Dcom.sun.management.jmxremote.ssl=false"]
+    }
 }

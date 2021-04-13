@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: kafka-stream-app
+  labels:
+    app: kafka-stream-app
+spec:
+  type: ClusterIP
+  ports:
+    - port: 5556
+      targetPort: metrics
+      name: metrics
+      protocol: TCP
+  selector:
+    app: kafka-stream-app

@@ -1,0 +1,12 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: kafka-stream-app-service-monitor
+  labels:
+    app: kafka-stream-app
+spec:
+  selector:
+    matchLabels:
+      app: kafka-stream-app
+  endpoints:
+    - port: metrics
