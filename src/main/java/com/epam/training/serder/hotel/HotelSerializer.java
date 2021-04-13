@@ -27,7 +27,7 @@ public class HotelSerializer implements Serializer<Hotel> {
 
     @Override
     public byte[] serialize(String topic, Headers headers, Hotel data) {
-        return data.toString().getBytes(StandardCharsets.UTF_8);
+        return data != null ? data.toString().getBytes(StandardCharsets.UTF_8) : null;
     }
 
     @Override

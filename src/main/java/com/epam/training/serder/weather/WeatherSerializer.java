@@ -27,7 +27,7 @@ public class WeatherSerializer implements Serializer<Weather> {
 
     @Override
     public byte[] serialize(String topic, Headers headers, Weather data) {
-        return data.toString().getBytes(StandardCharsets.UTF_8);
+        return data != null ? data.toString().getBytes(StandardCharsets.UTF_8) : null;
     }
 
     @Override

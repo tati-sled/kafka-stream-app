@@ -14,6 +14,7 @@ import org.apache.kafka.streams.kstream.Materialized;
 import org.apache.kafka.streams.kstream.Produced;
 import org.apache.log4j.Logger;
 
+import java.util.Optional;
 import java.util.Properties;
 import java.util.UUID;
 
@@ -27,7 +28,8 @@ public class KafkaStreamsAppRunner {
         Properties config = new Properties();
 
         config.put(StreamsConfig.APPLICATION_ID_CONFIG, "kafka-stream-app-" + UUID.randomUUID());
-        config.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "host.docker.internal:9094");
+        config.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG,
+                Optional.ofNullable(System.getenv("BOOTSTRAP_SERVERS_CONFIG")).orElse("host.docker.internal:9094"));
         config.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
         config.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, 1000);
         config.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, 10);
@@ -38,9 +40,9 @@ public class KafkaStreamsAppRunner {
     private Properties getTopicProps() {
         Properties props = new Properties();
 
-        props.put("hotelTopicName", "test-hotel");
-        props.put("weatherTopicName", "test-weather");
-        props.put("hotelWithWeatherTopicName", "test-hotel-weather-join");
+        props.put("hotelTopicName", "hotel-data-topic");
+        props.put("weatherTopicName", "weather-data-topic");
+        props.put("hotelWithWeatherTopicName", "hotel-with-weather-data");
 
         return props;
     }
@@ -95,29 +97,29 @@ public class KafkaStreamsAppRunner {
         KTable<String, Double> weatherTable = getAverageTempWeatherTable(streamsBuilder, weatherTopicName);
         KTable<String, Hotel> hotelTable = getHotelTable(streamsBuilder, hotelTopicName);
 
-        weatherTable
-                .toStream()
-                .groupByKey()
-                .aggregate(() -> new CountAndSum(0L, 0.0),
-                        (key, value, aggregate) -> {
-                            aggregate.setCount(aggregate.getCount() + 1);
-                            aggregate.setSum(aggregate.getSum() + value);
-                            return aggregate;
-                        }
-                        , Materialized.with(Serdes.String(), CustomSerdes.CountAndSum()))
-                .toStream()
-                .map((key, value) -> {
-                    double aveTempC = value.getSum() / value.getCount();
-                    String[] complexKeyItems = key.split(" ");
-                    String geoHash = complexKeyItems[0];
-                    String date = complexKeyItems[1];
-                    Weather weather = new Weather(aveTempC, aveTempC + TEMPERATURE_DIFF_FROM_C_TO_F, date, geoHash);
-                    return new KeyValue<>(key, weather);
-                }).toTable(Materialized.with(Serdes.String(), CustomSerdes.Weather()))
+        hotelTable
                 .join(
-                        hotelTable
-                        , Weather::getGeoHash
-                        , (wValue, hValue) -> {
+                        weatherTable
+                                .toStream()
+                                .groupByKey()
+                                .aggregate(() -> new CountAndSum(0L, 0.0),
+                                        (key, value, aggregate) -> {
+                                            aggregate.setCount(aggregate.getCount() + 1);
+                                            aggregate.setSum(aggregate.getSum() + value);
+                                            return aggregate;
+                                        }
+                                        , Materialized.with(Serdes.String(), CustomSerdes.CountAndSum()))
+                                .toStream()
+                                .map((key, value) -> {
+                                    double aveTempC = value.getSum() / value.getCount();
+                                    String[] complexKeyItems = key.split(" ");
+                                    String geoHash = complexKeyItems[0];
+                                    String date = complexKeyItems[1];
+                                    Weather weather = new Weather(aveTempC, aveTempC + TEMPERATURE_DIFF_FROM_C_TO_F, date, geoHash);
+                                    return new KeyValue<>(geoHash, weather);
+                                }).toTable(Materialized.with(Serdes.String(), CustomSerdes.Weather()))
+                        , Hotel::getGeoHash
+                        , (hValue, wValue) -> {
                             hValue.setDate(wValue.getWeatherDate());
                             hValue.setAverageTemperatureC(String.valueOf(wValue.getAverageTemperatureC()));
                             hValue.setAverageTemperatureF(String.valueOf(wValue.getAverageTemperatureF()));
