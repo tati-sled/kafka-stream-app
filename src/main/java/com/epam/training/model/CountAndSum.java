@@ -14,11 +14,30 @@ import lombok.Data;
 @Data
 @AllArgsConstructor(access = AccessLevel.PUBLIC)
 public class CountAndSum {
-    private Long count;
-    private Double sum;
+    private long count;
+    private double sum;
 
     @Override
     public String toString() {
         return count + " " + sum;
+    }
+
+    /**
+     *
+     * @param value
+     * @return
+     */
+    public CountAndSum incrementCountAndSum(double value) {
+        this.count++;
+        this.sum += value;
+        return this;
+    }
+
+    /**
+     *
+     * @return
+     */
+    public double evaluateAverage() {
+        return sum / count;
     }
 }

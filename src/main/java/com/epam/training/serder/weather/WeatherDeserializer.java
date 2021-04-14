@@ -21,11 +21,6 @@ public class WeatherDeserializer implements Deserializer<Weather> {
     }
 
     @Override
-    public void configure(Map<String, ?> configs, boolean isKey) {
-
-    }
-
-    @Override
     public Weather deserialize(String topic, byte[] data) {
         String weatherString = new String(data, StandardCharsets.UTF_8);
         JSONObject jsonObject = new JSONObject(weatherString);
@@ -39,19 +34,7 @@ public class WeatherDeserializer implements Deserializer<Weather> {
 
     @Override
     public Weather deserialize(String topic, Headers headers, byte[] data) {
-        String weatherString = new String(data, StandardCharsets.UTF_8);
-        JSONObject jsonObject = new JSONObject(weatherString);
-        return new Weather(jsonObject.getDouble("lng")
-                , jsonObject.getDouble("lat")
-                , jsonObject.getDouble("avg_tmpr_f")
-                , jsonObject.getDouble("avg_tmpr_c")
-                , jsonObject.getString("wthr_date")
-                , jsonObject.optString("geoHash"));
-
+        return deserialize(topic, data);
     }
 
-    @Override
-    public void close() {
-
-    }
 }

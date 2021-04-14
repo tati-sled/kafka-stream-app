@@ -15,10 +15,6 @@ import java.util.Map;
  * @since 1.0.0
  */
 public class CountAndSumSerializer implements Serializer<CountAndSum> {
-    @Override
-    public void configure(Map<String, ?> configs, boolean isKey) {
-
-    }
 
     @Override
     public byte[] serialize(String topic, CountAndSum data) {
@@ -27,11 +23,7 @@ public class CountAndSumSerializer implements Serializer<CountAndSum> {
 
     @Override
     public byte[] serialize(String topic, Headers headers, CountAndSum data) {
-        return data.toString().getBytes(StandardCharsets.UTF_8);
+        return serialize(topic, data);
     }
 
-    @Override
-    public void close() {
-
-    }
 }

@@ -20,11 +20,6 @@ public class CountAndSumDeserializer implements Deserializer<CountAndSum> {
     }
 
     @Override
-    public void configure(Map<String, ?> configs, boolean isKey) {
-
-    }
-
-    @Override
     public CountAndSum deserialize(String topic, byte[] data) {
         String[] stringData = new String(data, StandardCharsets.UTF_8).split(" ");
         return new CountAndSum(Long.parseLong(stringData[0]), Double.parseDouble(stringData[1]));
@@ -32,12 +27,7 @@ public class CountAndSumDeserializer implements Deserializer<CountAndSum> {
 
     @Override
     public CountAndSum deserialize(String topic, Headers headers, byte[] data) {
-        String[] stringData = new String(data, StandardCharsets.UTF_8).split(" ");
-        return new CountAndSum(Long.parseLong(stringData[0]), Double.parseDouble(stringData[1]));
+        return deserialize(topic, data);
     }
 
-    @Override
-    public void close() {
-
-    }
 }

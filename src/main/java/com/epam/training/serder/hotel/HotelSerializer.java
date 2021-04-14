@@ -15,23 +15,15 @@ import java.util.Map;
  * @since 1.0.0
  */
 public class HotelSerializer implements Serializer<Hotel> {
-    @Override
-    public void configure(Map<String, ?> configs, boolean isKey) {
-
-    }
 
     @Override
     public byte[] serialize(String topic, Hotel data) {
-        return data.toString().getBytes(StandardCharsets.UTF_8);
-    }
-
-    @Override
-    public byte[] serialize(String topic, Headers headers, Hotel data) {
         return data != null ? data.toString().getBytes(StandardCharsets.UTF_8) : null;
     }
 
     @Override
-    public void close() {
-
+    public byte[] serialize(String topic, Headers headers, Hotel data) {
+        return serialize(topic, data);
     }
+
 }

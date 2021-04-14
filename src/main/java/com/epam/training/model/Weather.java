@@ -1,5 +1,6 @@
 package com.epam.training.model;
 
+import com.epam.training.KafkaStreamsAppRunner;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -18,6 +19,8 @@ import org.json.JSONObject;
 @AllArgsConstructor
 @Builder
 public class Weather {
+
+    private static final int TEMPERATURE_DIFF_FROM_C_TO_F = 32;
 
     double longitude;
     double latitude;
@@ -44,4 +47,9 @@ public class Weather {
                 .toString();
     }
 
+    public Weather populateTemperature(double averageTemperatureC) {
+        this.setAverageTemperatureC(averageTemperatureC);
+        this.setAverageTemperatureF(averageTemperatureC + TEMPERATURE_DIFF_FROM_C_TO_F);
+        return this;
+    }
 }

@@ -21,11 +21,6 @@ public class HotelDeserializer implements Deserializer<Hotel> {
     }
 
     @Override
-    public void configure(Map<String, ?> configs, boolean isKey) {
-
-    }
-
-    @Override
     public Hotel deserialize(String topic, byte[] data) {
         String hotelString = new String(data, StandardCharsets.UTF_8);
         JSONObject jsonObject = new JSONObject(hotelString);
@@ -44,23 +39,6 @@ public class HotelDeserializer implements Deserializer<Hotel> {
 
     @Override
     public Hotel deserialize(String topic, Headers headers, byte[] data) {
-        String hotelString = new String(data, StandardCharsets.UTF_8);
-        JSONObject jsonObject = new JSONObject(hotelString);
-        return new Hotel(jsonObject.optString("Id")
-                , jsonObject.optString("Name")
-                , jsonObject.optString("Country")
-                , jsonObject.optString("City")
-                , jsonObject.optString("Address")
-                , jsonObject.getDouble("Latitude")
-                , jsonObject.getDouble("Longitude")
-                , jsonObject.getString("Geohash")
-                , jsonObject.optString("Date")
-                , jsonObject.optString("Average Temperature C")
-                , jsonObject.optString("Average Temperature F"));
-    }
-
-    @Override
-    public void close() {
-
+        return deserialize(topic, data);
     }
 }
