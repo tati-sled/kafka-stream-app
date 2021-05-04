@@ -112,7 +112,7 @@ public class KafkaStreamsAppRunner {
         KTable<String, Hotel> hotelTable = getHotelTable(streamsBuilder, hotelTopicName);
 
         hotelTable
-                .leftJoin(
+                .join(
                         weatherTable
                         , (hValue, wValue) -> {
                             hValue.setDate(wValue.getWeatherDate());
