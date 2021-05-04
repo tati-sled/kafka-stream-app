@@ -1,0 +1,54 @@
+plugins {
+    id 'java'
+    id 'application'
+    id 'com.bmuschko.docker-java-application' version '6.7.0'
+}
+
+group 'com.epam'
+version '1.0.0'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    compile group: 'org.json', name: 'json', version: '20210307'
+    compile group: 'ch.hsr', name: 'geohash', version: '1.4.0'
+    compile 'org.projectlombok:lombok:1.18.18'
+    annotationProcessor 'org.projectlombok:lombok:1.18.18'
+    testAnnotationProcessor 'org.projectlombok:lombok:1.18.18'
+
+    compile 'org.apache.kafka:kafka-streams:2.7.0'
+    compile 'org.slf4j:slf4j-log4j12:1.7.25'
+
+    testImplementation group: 'org.apache.kafka', name: 'kafka-streams-test-utils', version: '2.7.0'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.7.1'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine'
+}
+
+test {
+    useJUnitPlatform()
+}
+
+mainClassName = 'com.epam.training.KafkaStreamsAppRunner'
+
+task extendedJar(type: Jar) {
+    manifest {
+        attributes 'Main-Class': 'com.epam.training.KafkaStreamsAppRunner'
+    }
+    from {
+        configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+    with jar
+}
+
+docker {
+    javaApplication {
+        baseImage = 'java:openjdk-8-jdk'
+        maintainer = 'Tatiana Slednikova "tatiana_slednikova@epam.com"'
+        images   = ['tatisled/' + project.name.toLowerCase() + ':latest']
+        jvmArgs = [ "-Dcom.sun.management.jmxremote.port=5555",
+                    "-Dcom.sun.management.jmxremote.authenticate=false",
+                    "-Dcom.sun.management.jmxremote.ssl=false"]
+    }
+}
