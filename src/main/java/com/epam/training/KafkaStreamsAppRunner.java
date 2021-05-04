@@ -30,7 +30,7 @@ public class KafkaStreamsAppRunner {
                 Optional.ofNullable(System.getenv("BOOTSTRAP_SERVERS_CONFIG")).orElse("host.docker.internal:9094"));
         config.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
         config.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, 1000);
-        config.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, 10);
+//        config.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, 10);
 
         return config;
     }
@@ -40,7 +40,7 @@ public class KafkaStreamsAppRunner {
 
         props.put("hotelTopicName", "hotel-data-topic");
         props.put("weatherTopicName", "weather-data-topic");
-        props.put("hotelWithWeatherTopicName", "hotel-with-weather-data");
+        props.put("hotelWithWeatherTopicName", "hotel-with-weather-data-topic");
 
         return props;
     }
@@ -112,9 +112,8 @@ public class KafkaStreamsAppRunner {
         KTable<String, Hotel> hotelTable = getHotelTable(streamsBuilder, hotelTopicName);
 
         hotelTable
-                .join(
+                .leftJoin(
                         weatherTable
-                        , Hotel::getGeoHash
                         , (hValue, wValue) -> {
                             hValue.setDate(wValue.getWeatherDate());
                             hValue.setAverageTemperatureC(String.valueOf(wValue.getAverageTemperatureC()));
@@ -123,6 +122,7 @@ public class KafkaStreamsAppRunner {
                         })
                 .toStream()
                 .to(hotelWithWeatherTopicName, Produced.with(Serdes.String(), CustomSerdes.Hotel()));
+
         return streamsBuilder.build();
     }
 

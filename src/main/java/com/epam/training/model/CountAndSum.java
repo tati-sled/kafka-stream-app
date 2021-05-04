@@ -23,9 +23,10 @@ public class CountAndSum {
     }
 
     /**
+     * Increment item
      *
-     * @param value
-     * @return
+     * @param value current value
+     * @return CountAndSum instance
      */
     public CountAndSum incrementCountAndSum(double value) {
         this.count++;
@@ -34,8 +35,9 @@ public class CountAndSum {
     }
 
     /**
+     * Evaluate average value
      *
-     * @return
+     * @return average value
      */
     public double evaluateAverage() {
         return sum / count;

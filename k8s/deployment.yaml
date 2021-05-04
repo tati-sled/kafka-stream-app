@@ -18,11 +18,11 @@ spec:
             name: kafka-stream-app-jmx-configmap
       containers:
         - name: kafka-stream-app
-          image: kafka-stream-app:latest
+          image: tatisled/kafka-stream-app:latest
           imagePullPolicy: Always
           env:
             - name: BOOTSTRAP_SERVERS_CONFIG
-              value: "10.110.107.94:9094"
+              value: "10.100.166.16:9094"
         - name: prometheus-jmx-exporter
           volumeMounts:
             - name: jmx-config
